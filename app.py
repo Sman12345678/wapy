@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, request, send_file, render_template
 from wapy import take_screenshot, binary_version, driver, chrome_bin, chromedriver_bin, get_driver
+from wapy import main
 
 driver = get_driver()
 app = Flask(__name__)
@@ -31,4 +32,5 @@ if __name__ == '__main__':
     logging.info(f"🧪 Chromium version: {chrome_version}")
     logging.info(f"🧪 Chromedriver version: {chromedriver_version}")
     logging.info("🚀 Starting Flask app on port 10000")
+    main()
     app.run(host='0.0.0.0', port=10000, debug=False)
