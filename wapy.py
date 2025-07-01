@@ -10,7 +10,7 @@ import time
 import logging
 from io import BytesIO
 import base64
-from PIL import Image
+
 
 # Set up logging
 logging.basicConfig(
@@ -26,7 +26,7 @@ ADMIN_CODE = "ICU14CU"
 
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
 
-app = Flask(__name__)
+
 
 chrome_bin = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
 chromedriver_bin = os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")
