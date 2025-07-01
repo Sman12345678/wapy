@@ -10,7 +10,7 @@ app = Flask(__name__)
 def serve_screenshot_api():
     try:
         screenshot_png = take_screenshot(driver)
-        logging.info("✅ Screenshot served as PNG.")
+        print("✅ Screenshot served as PNG.")
         return send_file(
             BytesIO(screenshot_png),
             mimetype="image/png",
@@ -18,11 +18,10 @@ def serve_screenshot_api():
             download_name="screenshot.png"
         )
     except Exception as e:
-        logging.error("❌ Failed to serve screenshot", exc_info=True)
+        print("❌ Failed to serve screenshot", exc_info=True)
         return jsonify({"error": str(e)}), 500
 @app.route("/")
 def index():
-    RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
     return jsonify({"hello":"test"})
 
 
