@@ -1,5 +1,5 @@
 from flask import Flask, jsonify, request, send_file, render_template
-from wapy import binary_version, take_screenshot
+from wapy import take_screenshot, binary_version, driver, chrome_bin, chromedriver_bin
 
 
 app = Flask(__name__)
