@@ -23,7 +23,7 @@ def serve_screenshot_api():
 @app.route("/")
 def index():
     RENDER_URL = os.getenv("RENDER_EXTERNAL_URL")
-    return render_template("index.html", render_url=RENDER_URL)
+    return jsonify({"hello":"test"})
 
 
 
