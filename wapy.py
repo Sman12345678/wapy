@@ -1,17 +1,13 @@
-
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 import subprocess
 import os
-import traceback
 import time
 import logging
 import base64
 
-
-# Set up logging
 logging.basicConfig(
     level=logging.DEBUG,
     format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
@@ -24,8 +20,6 @@ logging.getLogger().addHandler(file_handler)
 ADMIN_CODE = "ICU14CU"
 
 user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
-
-
 
 chrome_bin = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
 chromedriver_bin = os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")
@@ -42,50 +36,21 @@ def get_driver():
     service = Service(chromedriver_bin)
     return webdriver.Chrome(service=service, options=options)
 
-def take_screenshot(driver):
-    try:
-        logging.info("📸 Calculating full page height for screenshot")
+def take_screenshot(driver, filename):
+    logging.info("📸 Forcing giant viewport for full screenshot")
+    driver.set_window_size(1920, 5000)
+    time.sleep(1)
+    screenshot_data = driver.execute_cdp_cmd("Page.captureScreenshot", {
+        "format": "png",
+        "fromSurface": True,
+        "captureBeyondViewport": True
+    })
+    screenshot_png = base64.b64decode(screenshot_data["data"])
+    with open(filename, "wb") as f:
+        f.write(screenshot_png)
+    logging.info(f"✅ Screenshot saved as {filename}")
+    return screenshot_png
 
-        # Get the actual page height
-        total_height = driver.execute_script("""
-            return Math.max(
-                document.body.scrollHeight,
-                document.body.offsetHeight,
-                document.documentElement.clientHeight,
-                document.documentElement.scrollHeight,
-                document.documentElement.offsetHeight
-            );
-        """)
-        
-        # Add some buffer (e.g., 200px) to capture any floating elements
-        total_height += 200
-        
-        # Set viewport to match document height
-        viewport_width = driver.execute_script("return window.innerWidth")
-        driver.set_window_size(viewport_width, total_height)
-        
-        # Wait longer for layout to settle
-        time.sleep(3)
-        
-        screenshot_data = driver.execute_cdp_cmd("Page.captureScreenshot", {
-            "format": "png",
-            "fromSurface": True,
-            "captureBeyondViewport": True,
-            "clip": {
-                "width": viewport_width,
-                "height": total_height,
-                "x": 0,
-                "y": 0,
-                "scale": 1
-            }
-        })
-
-        screenshot_png = base64.b64decode(screenshot_data["data"])
-        logging.info(f"✅ Screenshot captured ({viewport_width}x{total_height}px)")
-        return screenshot_png
-    except Exception as e:
-        logging.error("❌ Screenshot capture failed", exc_info=True)
-        raise
 def binary_version(binary_path):
     try:
         result = subprocess.run([binary_path, "--version"], capture_output=True, text=True, check=True)
@@ -94,50 +59,53 @@ def binary_version(binary_path):
         logging.error(f"❌ Could not determine version for {binary_path}", exc_info=True)
         return f"Could not determine version: {e}"
 
+def css_selector_from_classes(class_list):
+    return "." + ".".join(class_list)
+
 def main():
-    from selenium.common.exceptions import NoSuchElementException
     driver = get_driver()
     try:
         driver.get("https://web.whatsapp.com")
         logging.info("Navigated to WhatsApp Web. Waiting for QR scan...")
 
-        # Your new QR code container class (use dot for each class)
-        qr_check_class = (
-            ".x1c4vz4f.xs83m0k.xdl72j9.x1g77sc7.xeuugli.x2lwn1j.xozqiw3.xamitd3."
-            "x7v7x1q.xy296fx.xbl0rts.x4i7bpe.x15zmtp0.x1sgudl8.x1oiqv2n.x1rsuxf0."
-            "xcgujcq.x1igtfuo.x13up0n2.x178xt8z.x1lun4ml.xso031l.xpilrb4.x13fuv20."
-            "x18b5jzi.x1q0q8m5.x1t7ytsu.xpypsur.x1fe0zbt.x249io5.xtq6bvn.x12peec7."
-            "x91od0.xvl3i4w.xfqsd3n.xzg3blf.x191sbug"
-        )
-        # The button you want to click after QR is scanned (use dot for each class)
-        button_class = (
-            ".x1c4vz4f.xs83m0k.xdl72j9.x1g77sc7.x78zum5.xozqiw3.x1oa3qoh.x12fk4p8."
-            "x3pnbk8.xfex06f.xeuugli.x2lwn1j.xl56j7k.x1q0g3np.x6s0dn4"
-        )
+        qr_classes = ["x1lliihq"]
+        login_alt_classes = [
+            "x1c4vz4f", "xs83m0k", "xdl72j9", "x1g77sc7", "x78zum5", "xozqiw3",
+            "x1oa3qoh", "x12fk4p8", "xeuugli", "x2lwn1j", "x1nhvcw1", "xdt5ytf", "x1cy8zhl"
+        ]
+        login_alt_text = "Log in with phone number"
+
+        qr_selector = css_selector_from_classes(qr_classes)
+        login_alt_selector = css_selector_from_classes(login_alt_classes)
+
+        qr_screenshot_taken = False
 
         while True:
-            try:
-                # Try to find the QR element
-                qr_elements = driver.find_elements(By.CSS_SELECTOR, qr_check_class)
-                if qr_elements:
-                    logging.info("QR code still present, waiting and refreshing...")
-                    time.sleep(15)
-                    driver.refresh()
-                else:
-                    logging.info("QR code likely scanned. Checking for button to click...")
-                    try:
-                        button = driver.find_element(By.CSS_SELECTOR, button_class)
-                        button.click()
-                        logging.info("Button clicked after QR scan!")
-                    except NoSuchElementException:
-                        logging.info("Button with the specified class not found. Proceeding...")
+            qr_present = False
+            login_alt_present = False
+
+            qr_elements = driver.find_elements(By.CSS_SELECTOR, qr_selector)
+            if qr_elements:
+                qr_present = True
+                if not qr_screenshot_taken:
+                    take_screenshot(driver, "wa_qr.png")
+                    qr_screenshot_taken = True
+
+            login_alt_elements = driver.find_elements(By.CSS_SELECTOR, login_alt_selector)
+            for el in login_alt_elements:
+                if el.text.strip() == login_alt_text:
+                    login_alt_present = True
                     break
-            except Exception as e:
-                logging.error("Unexpected error during QR scan check.", exc_info=True)
+
+            if qr_present or login_alt_present:
+                logging.info("QR code or login alternative still present, waiting and refreshing...")
+                time.sleep(15)
+                driver.refresh()
+            else:
+                logging.info("QR has been scanned. Proceeding...")
                 break
 
-        # Optionally, proceed with further automation or screenshot
-        take_screenshot(driver)
+        take_screenshot(driver, "wa_after_login.png")
         logging.info("Screenshot taken after QR scan.")
     finally:
         driver.quit()
