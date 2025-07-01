@@ -95,12 +95,49 @@ def binary_version(binary_path):
         return f"Could not determine version: {e}"
 
 def main():
+    from selenium.common.exceptions import NoSuchElementException
     driver = get_driver()
     try:
         driver.get("https://web.whatsapp.com")
+        logging.info("Navigated to WhatsApp Web. Waiting for QR scan...")
+
+        # Your new QR code container class (use dot for each class)
+        qr_check_class = (
+            ".x1c4vz4f.xs83m0k.xdl72j9.x1g77sc7.xeuugli.x2lwn1j.xozqiw3.xamitd3."
+            "x7v7x1q.xy296fx.xbl0rts.x4i7bpe.x15zmtp0.x1sgudl8.x1oiqv2n.x1rsuxf0."
+            "xcgujcq.x1igtfuo.x13up0n2.x178xt8z.x1lun4ml.xso031l.xpilrb4.x13fuv20."
+            "x18b5jzi.x1q0q8m5.x1t7ytsu.xpypsur.x1fe0zbt.x249io5.xtq6bvn.x12peec7."
+            "x91od0.xvl3i4w.xfqsd3n.xzg3blf.x191sbug"
+        )
+        # The button you want to click after QR is scanned (use dot for each class)
+        button_class = (
+            ".x1c4vz4f.xs83m0k.xdl72j9.x1g77sc7.x78zum5.xozqiw3.x1oa3qoh.x12fk4p8."
+            "x3pnbk8.xfex06f.xeuugli.x2lwn1j.xl56j7k.x1q0g3np.x6s0dn4"
+        )
+
+        while True:
+            try:
+                # Try to find the QR element
+                qr_elements = driver.find_elements(By.CSS_SELECTOR, qr_check_class)
+                if qr_elements:
+                    logging.info("QR code still present, waiting and refreshing...")
+                    time.sleep(15)
+                    driver.refresh()
+                else:
+                    logging.info("QR code likely scanned. Checking for button to click...")
+                    try:
+                        button = driver.find_element(By.CSS_SELECTOR, button_class)
+                        button.click()
+                        logging.info("Button clicked after QR scan!")
+                    except NoSuchElementException:
+                        logging.info("Button with the specified class not found. Proceeding...")
+                    break
+            except Exception as e:
+                logging.error("Unexpected error during QR scan check.", exc_info=True)
+                break
+
+        # Optionally, proceed with further automation or screenshot
         take_screenshot(driver)
-        logging.info("Please Scan the QR code")
-        time.sleep(20)
+        logging.info("Screenshot taken after QR scan.")
     finally:
         driver.quit()
-
