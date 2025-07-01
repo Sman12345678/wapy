@@ -1,7 +1,7 @@
 from flask import Flask, jsonify, request, send_file, render_template
-from wapy import take_screenshot, binary_version, driver, chrome_bin, chromedriver_bin
+from wapy import take_screenshot, binary_version, driver, chrome_bin, chromedriver_bin, get_driver
 
-
+driver = get_driver()
 app = Flask(__name__)
 
 @app.route("/api/screenshot")
