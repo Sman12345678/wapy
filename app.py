@@ -9,8 +9,9 @@ app = Flask(__name__)
 @app.route("/api/screenshot")
 def serve_screenshot_api():
     try:
-        screenshot_png = take_screenshot(driver)
-        print("✅ Screenshot served as PNG.")
+        take_screenshot(driver, "latest_screenshot.png")
+        with open("latest_screenshot.png", "rb") as f:
+            screenshot_png = f.read()
         return send_file(
             BytesIO(screenshot_png),
             mimetype="image/png",
@@ -18,8 +19,9 @@ def serve_screenshot_api():
             download_name="screenshot.png"
         )
     except Exception as e:
-        print("❌ Failed to serve screenshot", exc_info=True)
+        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+        
 @app.route("/")
 def index():
     return jsonify({"hello":"test"})
