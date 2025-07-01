@@ -26,6 +26,15 @@ def serve_screenshot_api():
 def index():
     return jsonify({"hello":"test"})
 
+@app.route("/start", methods=["POST", "GET"])
+def run_main_route():
+    try:
+        main()
+        return jsonify({"status": "main() executed successfully"})
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
+
 
 
 if __name__ == '__main__':
@@ -34,5 +43,5 @@ if __name__ == '__main__':
     print(f"🧪 Chromium version: {chrome_version}")
     print(f"🧪 Chromedriver version: {chromedriver_version}")
     print("🚀 Starting Flask app on port 10000")
-    main()
+   # main()
     app.run(host='0.0.0.0', port=10000, debug=False)
