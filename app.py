@@ -1,7 +1,13 @@
+from flask import Flask, jsonify, request, send_file, render_template
+from wapy import binary_version, take_screenshot
+
+
+app = Flask(__name__)
+
 @app.route("/api/screenshot")
 def serve_screenshot_api():
     try:
-        screenshot_png = take_screenshot_in_memory(driver)
+        screenshot_png = take_screenshot(driver)
         logging.info("✅ Screenshot served as PNG.")
         return send_file(
             BytesIO(screenshot_png),
@@ -20,8 +26,8 @@ def index():
 
 
 if __name__ == '__main__':
-    chrome_version = get_binary_version(chrome_bin)
-    chromedriver_version = get_binary_version(chromedriver_bin)
+    chrome_version = binary_version(chrome_bin)
+    chromedriver_version = binary_version(chromedriver_bin)
     logging.info(f"🧪 Chromium version: {chrome_version}")
     logging.info(f"🧪 Chromedriver version: {chromedriver_version}")
     setup_chatgpt_session()
