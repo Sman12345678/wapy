@@ -1,17 +1,18 @@
-from flask import Flask, jsonify, request, send_file, render_template
-from wapy import take_screenshot, binary_version, chrome_bin, chromedriver_bin, get_driver
-from wapy import main
+from flask import Flask, jsonify, send_file
+from wapy import take_screenshot, get_driver
 from io import BytesIO
 
-driver = get_driver()
 app = Flask(__name__)
+
+# Step 1: Start the browser and go to the WhatsApp Web page
+driver = get_driver()
+driver.get("https://web.whatsapp.com")
 
 @app.route("/api/screenshot")
 def serve_screenshot_api():
     try:
-        take_screenshot(driver, "latest_screenshot.png")
-        with open("latest_screenshot.png", "rb") as f:
-            screenshot_png = f.read()
+        # Step 2: Take a screenshot of the current page
+        screenshot_png = take_screenshot(driver)
         return send_file(
             BytesIO(screenshot_png),
             mimetype="image/png",
@@ -19,29 +20,11 @@ def serve_screenshot_api():
             download_name="screenshot.png"
         )
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
-        
+
 @app.route("/")
 def index():
-    return jsonify({"hello":"test"})
-
-@app.route("/start", methods=["POST", "GET"])
-def run_main_route():
-    try:
-        main()
-        return jsonify({"status": "main() executed successfully"})
-    except Exception as e:
-        import traceback; traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-
+    return jsonify({"hello": "test"})
 
 if __name__ == '__main__':
-    chrome_version = binary_version(chrome_bin)
-    chromedriver_version = binary_version(chromedriver_bin)
-    print(f"🧪 Chromium version: {chrome_version}")
-    print(f"🧪 Chromedriver version: {chromedriver_version}")
-    print("🚀 Starting Flask app on port 10000")
-   # main()
     app.run(host='0.0.0.0', port=10000, debug=False)
