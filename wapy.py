@@ -8,7 +8,6 @@ import os
 import traceback
 import time
 import logging
-from io import BytesIO
 import base64
 
 
@@ -31,17 +30,17 @@ user_agent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTM
 chrome_bin = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
 chromedriver_bin = os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")
 
-options = Options()
-options.binary_location = chrome_bin
-options.add_argument("--headless=new")
-options.add_argument("--no-sandbox")
-options.add_argument(f"user-agent={user_agent}")
-options.add_argument("--disable-dev-shm-usage")
-options.add_argument("--disable-gpu")
-options.add_argument("--disable-software-rasterizer")
-
-service = Service(chromedriver_bin)
-driver = webdriver.Chrome(service=service, options=options)
+def get_driver():
+    options = Options()
+    options.binary_location = chrome_bin
+    options.add_argument("--headless=new")
+    options.add_argument("--no-sandbox")
+    options.add_argument(f"user-agent={user_agent}")
+    options.add_argument("--disable-dev-shm-usage")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--disable-software-rasterizer")
+    service = Service(chromedriver_bin)
+    return webdriver.Chrome(service=service, options=options)
 
 def take_screenshot(driver):
     try:
@@ -96,9 +95,12 @@ def binary_version(binary_path):
         return f"Could not determine version: {e}"
 
 def main():
-    driver.get("https://web.whatsapp.com")
-    take_screenshot()
-    logging.info("Please Scan the QR code")
-    time.sleep(20)
-
+    driver = get_driver()
+    try:
+        driver.get("https://web.whatsapp.com")
+        take_screenshot(driver)
+        logging.info("Please Scan the QR code")
+        time.sleep(20)
+    finally:
+        driver.quit()
 
