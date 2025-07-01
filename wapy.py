@@ -43,7 +43,7 @@ options.add_argument("--disable-software-rasterizer")
 service = Service(chromedriver_bin)
 driver = webdriver.Chrome(service=service, options=options)
 
-def take_screenshot_in_memory(driver):
+def take_screenshot(driver):
     try:
         logging.info("📸 Calculating full page height for screenshot")
 
@@ -87,12 +87,18 @@ def take_screenshot_in_memory(driver):
     except Exception as e:
         logging.error("❌ Screenshot capture failed", exc_info=True)
         raise
-def get_binary_version(binary_path):
+def binary_version(binary_path):
     try:
         result = subprocess.run([binary_path, "--version"], capture_output=True, text=True, check=True)
         return result.stdout.strip()
     except Exception as e:
         logging.error(f"❌ Could not determine version for {binary_path}", exc_info=True)
         return f"Could not determine version: {e}"
+
+def main():
+    driver.get("https://web.whatsapp.com")
+    take_screenshot()
+    logging.info("Please Scan the QR code")
+    time.sleep(20)
 
 
