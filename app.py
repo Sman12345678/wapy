@@ -30,8 +30,8 @@ def index():
 if __name__ == '__main__':
     chrome_version = binary_version(chrome_bin)
     chromedriver_version = binary_version(chromedriver_bin)
-    logging.info(f"🧪 Chromium version: {chrome_version}")
-    logging.info(f"🧪 Chromedriver version: {chromedriver_version}")
-    logging.info("🚀 Starting Flask app on port 10000")
+    print(f"🧪 Chromium version: {chrome_version}")
+    print(f"🧪 Chromedriver version: {chromedriver_version}")
+    print("🚀 Starting Flask app on port 10000")
     main()
     app.run(host='0.0.0.0', port=10000, debug=False)
