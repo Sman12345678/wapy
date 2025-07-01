@@ -30,6 +30,5 @@ if __name__ == '__main__':
     chromedriver_version = binary_version(chromedriver_bin)
     logging.info(f"🧪 Chromium version: {chrome_version}")
     logging.info(f"🧪 Chromedriver version: {chromedriver_version}")
-    setup_chatgpt_session()
     logging.info("🚀 Starting Flask app on port 10000")
     app.run(host='0.0.0.0', port=10000, debug=False)
