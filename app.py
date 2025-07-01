@@ -1,6 +1,7 @@
 from flask import Flask, jsonify, request, send_file, render_template
 from wapy import take_screenshot, binary_version, driver, chrome_bin, chromedriver_bin, get_driver
 from wapy import main
+from io import ByteIO
 
 driver = get_driver()
 app = Flask(__name__)
