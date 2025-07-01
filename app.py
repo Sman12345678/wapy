@@ -10,7 +10,6 @@ app = Flask(__name__)
 def serve_screenshot_api():
     try:
         screenshot_png = take_screenshot(driver)
-        time.sleep(10)
         return send_file(
             BytesIO(screenshot_png),
             mimetype="image/png",
