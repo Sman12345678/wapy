@@ -59,6 +59,42 @@ def save_screenshot(driver, filename="initial.png"):
     driver.save_screenshot(filename)
     logger.info(f"📸 Screenshot saved as {filename}")
 
+def get_qr(driver):
+    try:
+        # Wait for QR canvas to be present
+        logger.info("🔍 Looking for QR code...")
+        
+        # Execute JavaScript to get QR code from canvas
+        qr_base64 = driver.execute_script("""
+            const canvas = document.querySelector('canvas[aria-label="Scan this QR code to link a device!"][role="img"]');
+            if (!canvas) return null;
+            
+            // Ensure canvas is the correct size
+            if (canvas.width !== 228 || canvas.height !== 228) {
+                console.log('Canvas size mismatch:', canvas.width, canvas.height);
+                return null;
+            }
+            
+            try {
+                return canvas.toDataURL('image/png').substring('data:image/png;base64,'.length);
+            } catch (e) {
+                console.error('Canvas error:', e);
+                return null;
+            }
+        """)
+        
+        if qr_base64:
+            logger.info("✅ QR code successfully captured")
+            return qr_base64
+        else:
+            logger.error("❌ QR code not found or cannot be captured")
+            return None
+            
+    except Exception as e:
+        logger.error(f"💥 Error capturing QR code: {e}")
+        return None
+
+
 def main():
     try:
         # Initialize driver
