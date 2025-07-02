@@ -1,19 +1,34 @@
 from flask import Flask, jsonify, send_file, render_template
-from wapy import get_driver, take_screenshot, main, #copy_qr
+from wapy import get_driver, take_screenshot, main
 from io import BytesIO
 import threading
+import logging
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-driver = get_driver()
+driver = None
 
-# Start WhatsApp automation as a background task
-automation_thread = threading.Thread(target=main, daemon=True)
-automation_thread.start()
+def initialize_driver():
+    global driver
+    driver = main()
+    if driver:
+        logger.info("✨ Driver initialized successfully")
+    else:
+        logger.error("❌ Failed to initialize driver")
+
+# Initialize the driver when starting the app
+initialize_driver()
 
 @app.route("/api/screenshot")
 def serve_screenshot_api():
     try:
-        screenshot_png = take_screenshot(driver,filename)
+        if not driver:
+            return jsonify({"error": "Driver not initialized"}), 500
+            
+        screenshot_png = take_screenshot(driver)
         return send_file(
             BytesIO(screenshot_png),
             mimetype="image/png",
@@ -21,12 +36,8 @@ def serve_screenshot_api():
             download_name="screenshot.png"
         )
     except Exception as e:
+        logger.error(f"Screenshot error: {e}")
         return jsonify({"error": str(e)}), 500
-
-'''@app.route("/")
-def index():
-    qr_base64 = copy_qr(driver)
-    return render_template('index.html', qr_base64=qr_base64)'''
 
 @app.errorhandler(404)
 def not_found_error(error):
