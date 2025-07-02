@@ -1,10 +1,10 @@
-# TIERD.........</>
 import logging
 import os
 import time
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
+from datetime import datetime
 
 # Emoji-enhanced logging setup
 class EmojiFormatter(logging.Formatter):
@@ -39,11 +39,20 @@ def get_driver():
     service = Service(os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver"))
     return webdriver.Chrome(service=service, options=options)
 
-def take_screenshot(driver, filename):
+def take_screenshot(driver):
     # Set a large viewport size
     driver.set_window_size(1920, 1080)
     
-    # Take the screenshot and save it
+    # Take the screenshot and return the PNG data
+    screenshot_png = driver.get_screenshot_as_png()
+    logger.info("📸 Screenshot captured")
+    return screenshot_png
+
+def save_screenshot(driver, filename="initial.png"):
+    # Set a large viewport size
+    driver.set_window_size(1920, 1080)
+    
+    # Save the screenshot to file
     driver.save_screenshot(filename)
     logger.info(f"📸 Screenshot saved as {filename}")
 
@@ -61,24 +70,19 @@ def main():
         logger.info("⏱️ Waiting 10 seconds for page load...")
         time.sleep(10)
         
-        # Generate timestamp for filename
+        # Save initial screenshot
+        save_screenshot(driver)
         
-        filename = f"initial.png"
-        
-        # Take screenshot
-        take_screenshot(driver, filename)
+        return driver
         
     except Exception as e:
         logger.error(f"💥 Error: {e}")
-    finally:
         if driver:
             driver.quit()
-            logger.info("🚪 Browser closed")
+        return None
 
 if __name__ == "__main__":
-    current_time = time.strftime('%Y-%m-%d %H:%M:%S UTC')
-    current_user = os.getenv('USER', 'Suleiman')
-    
-    logger.info(f"⏰ Current Time: {current_time}")
-    logger.info(f"👤 Running as: {current_user}")
+    logger.info("Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): " + 
+                datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+    logger.info("Current User's Login: Sman12345678")
     main()
