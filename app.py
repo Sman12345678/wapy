@@ -28,5 +28,9 @@ def index():
     qr_base64 = copy_qr(driver)
     return render_template('index.html', qr_base64=qr_base64)
 
+@app.errorhandler(404)
+def not_found_error(error):
+    return render_template('404.html'), 404
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
