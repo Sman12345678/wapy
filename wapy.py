@@ -1,53 +1,47 @@
 import logging
 import os
 import time
+import base64
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import NoSuchElementException, TimeoutException
+from selenium.common.exceptions import TimeoutException
 
-# Boxed logging formatter with 10 '=' signs for borders
-class BoxedFormatter(logging.Formatter):
+# Emoji-enhanced logging setup
+class EmojiFormatter(logging.Formatter):
+    EMOJI_MAP = {
+        'DEBUG': '🔍',
+        'INFO': '✨',
+        'WARNING': '⚠️',
+        'ERROR': '❌',
+        'CRITICAL': '🚨'
+    }
+
     def format(self, record):
-        msg = super().format(record)
-        msg_lines = msg.split('\n')
-        max_len = max(len(line) for line in msg_lines)
-        box_width = max(22, max_len + 6)
-        top_bot = '=' * 10
-        empty = '=' + ' ' * (box_width - 2) + '='
-        boxed_lines = [
-            '=' + line.center(box_width - 2) + '='
-            for line in msg_lines
-        ]
-        return '\n'.join([top_bot, empty, *boxed_lines, empty, top_bot])
+        # Add emoji to the log level
+        record.levelname = f"{self.EMOJI_MAP.get(record.levelname, '')} {record.levelname}"
+        return super().format(record)
 
-# Logging setup
+# Logging setup with emojis
 logging.basicConfig(level=logging.DEBUG)
-console_handler = logging.StreamHandler()
-console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(BoxedFormatter("%(asctime)s [%(levelname)s] %(message)s"))
-file_handler = logging.FileHandler("app.log")
-file_handler.setFormatter(BoxedFormatter("%(asctime)s [%(levelname)s] %(message)s"))
-root_logger = logging.getLogger()
-root_logger.handlers = []
-root_logger.addHandler(console_handler)
-root_logger.addHandler(file_handler)
+logger = logging.getLogger(__name__)
+handler = logging.StreamHandler()
+handler.setFormatter(EmojiFormatter('%(asctime)s [%(levelname)s] %(message)s'))
+logger.handlers = [handler]
 
-# WhatsApp Web selectors
-SELECTOR_QR_CANVAS = "canvas[aria-label='Scan this QR code to link a device!']"
-SELECTOR_QR_CONTAINER = "div.x579bpy.xo1l8bm.xggjnk3.x1hql6x6"
-SELECTOR_NEW_MESSAGE_DIV = "div._ahlk"
-
-# Chrome setup for Render or local
+# Chrome setup
 user_agent = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
-    "(KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
+    "(KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36"
 )
 chrome_bin = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
 chromedriver_bin = os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")
+
+# Updated selector for QR canvas
+QR_CANVAS_SELECTOR = 'canvas[aria-label="Scan this QR code to link a device!"][role="img"]'
 
 def get_driver():
     options = Options()
@@ -61,90 +55,65 @@ def get_driver():
     service = Service(chromedriver_bin)
     return webdriver.Chrome(service=service, options=options)
 
-driver = get_driver()
-
-def take_screenshot(driver, filename="screenshot.png"):
-    driver.save_screenshot(filename)
-    logging.info(f"Screenshot saved as {filename}")
-
-def is_qr_still_visible(driver):
-    try:
-        driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CONTAINER)
-        return True
-    except NoSuchElementException:
-        return False
-
-def wait_for_page_load_and_qr(driver, timeout=60):
-    try:
-        # Wait for the QR container to appear (signals page loaded)
-        WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, SELECTOR_QR_CONTAINER))
-        )
-        logging.info("QR container loaded and page is fully loaded.")
-        return True
-    except TimeoutException:
-        logging.error("QR container did not appear. Page may not have loaded correctly.")
-        return False
-
-def wait_for_qr_scan(driver, qr_timeout=300):
-    logging.info("Waiting for QR scan (auto-refresh every 5 minutes)...")
-    timer = time.time()
-    while time.time() - timer < qr_timeout:
-        if not is_qr_still_visible(driver):
-            logging.info("QR container div gone. Assuming QR scanned.")
-            return
-        time.sleep(1)
-    logging.info("QR code expired / not scanned, refreshing page for new QR.")
-    driver.refresh()
-    time.sleep(5)
-    wait_for_qr_scan(driver, qr_timeout)
-
-def get_msg(driver):
-    while True:
-        try:
-            msg_div = driver.find_element(By.CSS_SELECTOR, SELECTOR_NEW_MESSAGE_DIV)
-            msg_div.click()
-            logging.info("Clicked new message to view.")
-            return True
-        except NoSuchElementException:
-            time.sleep(1)
+def take_screenshot(driver):
+    screenshot = driver.get_screenshot_as_png()
+    logger.info("📸 Screenshot captured")
+    return screenshot
 
 def copy_qr(driver):
     try:
+        # Wait for QR canvas to be present
         WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, SELECTOR_QR_CANVAS))
+            EC.presence_of_element_located((By.CSS_SELECTOR, QR_CANVAS_SELECTOR))
         )
-        qr_canvas = driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CANVAS)
+        
+        # Get the canvas element
+        qr_canvas = driver.find_element(By.CSS_SELECTOR, QR_CANVAS_SELECTOR)
+        
+        # Execute JavaScript to get canvas data
         qr_base64 = driver.execute_script("""
             var canvas = arguments[0];
             return canvas.toDataURL('image/png').substring('data:image/png;base64,'.length);
         """, qr_canvas)
-        logging.info("QR code copied as base64.")
+        
+        logger.info("🔲 QR code successfully captured")
         return qr_base64
-    except (NoSuchElementException, TimeoutException):
-        logging.error("QR canvas not found!")
+    except TimeoutException:
+        logger.error("⏳ QR canvas not found within timeout period")
+        return None
+    except Exception as e:
+        logger.error(f"💥 Error capturing QR code: {e}")
         return None
 
 def main():
+    driver = None
     try:
+        driver = get_driver()
+        logger.info("🚀 WebDriver initialized")
+        
+        # Navigate to WhatsApp Web
         driver.get("https://web.whatsapp.com")
-        time.sleep(10)
-        logging.info("Navigated to WhatsApp Web.")
-        if not wait_for_page_load_and_qr(driver):
-            return
-        qr_base64 = copy_qr(driver)
-        if qr_base64:
-            logging.info("QR code extracted.")
-        take_screenshot(driver)
-        wait_for_qr_scan(driver)
-        logging.info("Polling for new messages...")
-        while True:
-            get_msg(driver)
-            time.sleep(1)
+        logger.info("🌐 Navigated to WhatsApp Web")
+        
+        # Initial wait for page load
+        time.sleep(15)
+        logger.info("⏱️ Waiting for page load...")
+        
+        # Try to get QR code
+        qr_data = copy_qr(driver)
+        if qr_data:
+            logger.info("✅ QR code extracted successfully")
+        else:
+            logger.error("❌ Failed to extract QR code")
+            
+        return driver
+            
     except Exception as e:
-        logging.error(f"Error in WhatsApp automation: {e}", exc_info=True)
-    finally:
-        driver.quit()
+        logger.error(f"💥 Error in main function: {e}")
+        if driver:
+            driver.quit()
+        return None
 
 if __name__ == "__main__":
+    logger.info(f"🕐 Starting script at {time.strftime('%Y-%m-%d %H:%M:%S UTC')}")
     main()
