@@ -62,8 +62,8 @@ def main():
         time.sleep(10)
         
         # Generate timestamp for filename
-        timestamp = time.strftime('%Y%m%d_%H%M%S')
-        filename = f"whatsapp_initial_{timestamp}.png"
+        
+        filename = f"initial.png"
         
         # Take screenshot
         take_screenshot(driver, filename)
