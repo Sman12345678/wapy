@@ -113,12 +113,15 @@ def main():
     try:
         driver.get("https://web.whatsapp.com")
         logging.info("Navigated to WhatsApp Web.")
+        time.sleep(10)
 
         # 1. Wait for QR scan, refresh every 2 minutes if expired
         wait_for_qr_scan(driver)
+        take_screenshot(driver)
 
         # 2. Wait until user is on the main page (QR scan complete)
         wait_for_main_page(driver)
+        take_screenshot(driver)
 
         # 3. Poll for new messages and click to view
         logging.info("Polling for new messages...")
