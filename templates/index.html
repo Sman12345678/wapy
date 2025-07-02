@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>WhatsApp QR Code</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin-top: 60px;
+        }
+        .qr-container {
+            display: inline-block;
+            border: 1px solid #ddd;
+            padding: 24px 32px;
+            border-radius: 10px;
+            background: #fafbfc;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+        }
+        img {
+            margin-top: 16px;
+            margin-bottom: 8px;
+        }
+        .note {
+            color: #888;
+            font-size: 14px;
+            margin-top: 18px;
+        }
+    </style>
+</head>
+<body>
+    <div class="qr-container">
+        <h1>Scan WhatsApp QR Code</h1>
+        {% if qr_base64 %}
+            <img src="data:image/png;base64,{{ qr_base64 }}" 
+                 alt="WhatsApp QR Code" width="300" height="300"/>
+            <div class="note">Open WhatsApp on your phone and scan to link your device.</div>
+        {% else %}
+            <div class="note">
+                No QR code found.<br>
+                It may have already been scanned or is not available at this time.
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
