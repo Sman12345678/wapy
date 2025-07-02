@@ -41,7 +41,16 @@ chrome_bin = os.environ.get("CHROME_BIN", "/usr/bin/chromium")
 chromedriver_bin = os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver")
 
 # Updated selector for QR canvas
-QR_CANVAS_SELECTOR = 'canvas[aria-label="Scan this QR code to link a device!"][role="img"]'
+QR_SELECTORS = [
+    # Exact match from the HTML structure
+    'div[data-ref] canvas[aria-label="Scan this QR code to link a device!"]',
+    # More specific selector using the class
+    'div._akau canvas[aria-label="Scan this QR code to link a device!"]',
+    # Try with data-ref attribute
+    'div[data-ref^="2@"] canvas',
+    # Fallback to just the canvas
+    'canvas[aria-label="Scan this QR code to link a device!"]',
+]
 
 def get_driver():
     options = Options()
@@ -60,30 +69,84 @@ def take_screenshot(driver):
     logger.info("📸 Screenshot captured")
     return screenshot
 
+def wait_for_qr_container(driver, timeout=30):
+    """Wait for the QR container to be present"""
+    try:
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, 'div[data-ref^="2@"]'))
+        )
+        logger.info("🎯 QR container found")
+        return True
+    except TimeoutException:
+        logger.error("⏳ Timeout waiting for QR container")
+        return False
+
 def copy_qr(driver):
     try:
-        # Wait for QR canvas to be present
-        WebDriverWait(driver, 30).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, QR_CANVAS_SELECTOR))
-        )
+        # First wait for the container
+        if not wait_for_qr_container(driver):
+            return None
+            
+        # Log the structure we're looking for
+        logger.debug("🔍 Looking for QR code in the following structure:")
+        logger.debug("📦 div[data-ref] > canvas[aria-label]")
         
-        # Get the canvas element
-        qr_canvas = driver.find_element(By.CSS_SELECTOR, QR_CANVAS_SELECTOR)
-        
-        # Execute JavaScript to get canvas data
-        qr_base64 = driver.execute_script("""
-            var canvas = arguments[0];
-            return canvas.toDataURL('image/png').substring('data:image/png;base64,'.length);
-        """, qr_canvas)
-        
-        logger.info("🔲 QR code successfully captured")
-        return qr_base64
-    except TimeoutException:
-        logger.error("⏳ QR canvas not found within timeout period")
+        # Try each selector
+        for selector in QR_SELECTORS:
+            try:
+                logger.debug(f"🎯 Trying selector: {selector}")
+                qr_canvas = driver.find_element(By.CSS_SELECTOR, selector)
+                logger.info(f"✅ Found QR canvas with selector: {selector}")
+                
+                # Ensure the canvas is ready
+                WebDriverWait(driver, 5).until(
+                    lambda d: d.execute_script("""
+                        var canvas = arguments[0];
+                        var context = canvas.getContext('2d');
+                        var pixelData = context.getImageData(0, 0, 1, 1);
+                        return pixelData.data[3] !== 0;  // Check if pixel is not transparent
+                    """, qr_canvas)
+                )
+                
+                # Get canvas data
+                qr_base64 = driver.execute_script("""
+                    var canvas = arguments[0];
+                    try {
+                        // Force a small delay to ensure canvas is painted
+                        return new Promise((resolve) => {
+                            setTimeout(() => {
+                                try {
+                                    resolve(canvas.toDataURL('image/png')
+                                           .substring('data:image/png;base64,'.length));
+                                } catch (e) {
+                                    resolve(null);
+                                }
+                            }, 500);
+                        });
+                    } catch (e) {
+                        return null;
+                    }
+                """, qr_canvas)
+                
+                if qr_base64:
+                    logger.info("🎉 QR code successfully captured")
+                    return qr_base64
+                else:
+                    logger.warning("⚠️ Canvas found but could not get image data")
+                    
+            except NoSuchElementException:
+                logger.debug(f"⚠️ Selector not found: {selector}")
+                continue
+                
+        # If we get here, log the page source for debugging
+        logger.error("❌ No working QR code selector found")
+        log_page_source(driver)
         return None
+        
     except Exception as e:
         logger.error(f"💥 Error capturing QR code: {e}")
         return None
+
 
 def main():
     driver = None
@@ -96,9 +159,9 @@ def main():
         logger.info("🌐 Navigated to WhatsApp Web")
         
         # Initial wait for page load
-        time.sleep(15)
-        take_screenshot(driver)
         logger.info("⏱️ Waiting for page load...")
+        time.sleep(5)
+        take_screenshot(driver)# Reduced initial wait since we have explicit waits now
         
         # Try to get QR code
         qr_data = copy_qr(driver)
