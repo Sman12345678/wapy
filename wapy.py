@@ -97,6 +97,7 @@ def main():
         
         # Initial wait for page load
         time.sleep(15)
+        def take_screenshot(driver)
         logger.info("⏱️ Waiting for page load...")
         
         # Try to get QR code
