@@ -75,6 +75,28 @@ def serve_screenshot_api():
         logger.error(f"Screenshot error: {e}")
         return jsonify({"error": str(e)}), 500
 
+@app.route("/refresh")
+def refresh_browser():
+    try:
+        if not driver:
+            logger.error("❌ Driver not initialized")
+            return jsonify({"error": "Driver not initialized"}), 500
+            
+        # Refresh the browser
+        driver.refresh()
+        logger.info("🔄 Browser refreshed")
+        
+        # Wait for page to load
+        time.sleep(10)
+        logger.info("⏱️ Waited 10 seconds after refresh")
+        
+        # Redirect back to index
+        return redirect(url_for('index'))
+        
+    except Exception as e:
+        logger.error(f"🚨 Refresh error: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @app.errorhandler(404)
 def not_found_error(error):
     return render_template('404.html'), 404
