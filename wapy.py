@@ -128,6 +128,7 @@ def copy_qr(driver):
 def main():
     try:
         driver.get("https://web.whatsapp.com")
+        time.sleep(10)
         logging.info("Navigated to WhatsApp Web.")
         if not wait_for_page_load_and_qr(driver):
             return
