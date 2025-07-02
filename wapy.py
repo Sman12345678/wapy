@@ -1,42 +1,47 @@
 import logging
 import os
+import time
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
-from selenium.common.exceptions import NoSuchElementException
-import time
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException, TimeoutException
 
-class SquareBoxFormatter(logging.Formatter):
+# Boxed logging formatter with 10 '=' signs for borders
+class BoxedFormatter(logging.Formatter):
     def format(self, record):
         msg = super().format(record)
         msg_lines = msg.split('\n')
         max_len = max(len(line) for line in msg_lines)
-        box_width = max(22, max_len + 6)  # minimum width, adjust as needed
-        top_bot = '=' * box_width
+        box_width = max(22, max_len + 6)
+        top_bot = '=' * 10
         empty = '=' + ' ' * (box_width - 2) + '='
-        # Center each line in the box
         boxed_lines = [
             '=' + line.center(box_width - 2) + '='
             for line in msg_lines
         ]
         return '\n'.join([top_bot, empty, *boxed_lines, empty, top_bot])
 
+# Logging setup
 logging.basicConfig(level=logging.DEBUG)
 console_handler = logging.StreamHandler()
 console_handler.setLevel(logging.DEBUG)
-console_handler.setFormatter(SquareBoxFormatter("%(asctime)s [%(levelname)s] %(message)s"))
+console_handler.setFormatter(BoxedFormatter("%(asctime)s [%(levelname)s] %(message)s"))
 file_handler = logging.FileHandler("app.log")
-file_handler.setFormatter(SquareBoxFormatter("%(asctime)s [%(levelname)s] %(message)s"))
+file_handler.setFormatter(BoxedFormatter("%(asctime)s [%(levelname)s] %(message)s"))
 root_logger = logging.getLogger()
 root_logger.handlers = []
 root_logger.addHandler(console_handler)
 root_logger.addHandler(file_handler)
 
+# WhatsApp Web selectors
 SELECTOR_QR_CANVAS = "canvas[aria-label='Scan this QR code to link a device!']"
 SELECTOR_QR_CONTAINER = "div.x579bpy.xo1l8bm.xggjnk3.x1hql6x6"
 SELECTOR_NEW_MESSAGE_DIV = "div._ahlk"
 
+# Chrome setup for Render or local
 user_agent = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
@@ -58,14 +63,27 @@ def get_driver():
 
 driver = get_driver()
 
-def take_screenshot(driver):
-    return driver.get_screenshot_as_png()
+def take_screenshot(driver, filename="screenshot.png"):
+    driver.save_screenshot(filename)
+    logging.info(f"Screenshot saved as {filename}")
 
 def is_qr_still_visible(driver):
     try:
         driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CONTAINER)
         return True
     except NoSuchElementException:
+        return False
+
+def wait_for_page_load_and_qr(driver, timeout=60):
+    try:
+        # Wait for the QR container to appear (signals page loaded)
+        WebDriverWait(driver, timeout).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, SELECTOR_QR_CONTAINER))
+        )
+        logging.info("QR container loaded and page is fully loaded.")
+        return True
+    except TimeoutException:
+        logging.error("QR container did not appear. Page may not have loaded correctly.")
         return False
 
 def wait_for_qr_scan(driver, qr_timeout=300):
@@ -93,22 +111,31 @@ def get_msg(driver):
 
 def copy_qr(driver):
     try:
+        WebDriverWait(driver, 30).until(
+            EC.presence_of_element_located((By.CSS_SELECTOR, SELECTOR_QR_CANVAS))
+        )
         qr_canvas = driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CANVAS)
         qr_base64 = driver.execute_script("""
             var canvas = arguments[0];
             return canvas.toDataURL('image/png').substring('data:image/png;base64,'.length);
         """, qr_canvas)
+        logging.info("QR code copied as base64.")
         return qr_base64
-    except NoSuchElementException:
+    except (NoSuchElementException, TimeoutException):
+        logging.error("QR canvas not found!")
         return None
 
 def main():
     try:
         driver.get("https://web.whatsapp.com")
         logging.info("Navigated to WhatsApp Web.")
-        time.sleep(10)
-        wait_for_qr_scan(driver)
+        if not wait_for_page_load_and_qr(driver):
+            return
+        qr_base64 = copy_qr(driver)
+        if qr_base64:
+            logging.info("QR code extracted.")
         take_screenshot(driver)
+        wait_for_qr_scan(driver)
         logging.info("Polling for new messages...")
         while True:
             get_msg(driver)
