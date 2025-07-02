@@ -93,6 +93,22 @@ def get_msg(driver):
         except NoSuchElementException:
             time.sleep(1)
 
+SELECTOR_QR_CANVAS = "canvas[aria-label='Scan this QR code to link a device!']"
+
+def copy_qr(driver):
+    """
+    Locates the QR code canvas and returns its PNG base64 string.
+    """
+    try:
+        qr_canvas = driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CANVAS)
+        qr_base64 = driver.execute_script("""
+            var canvas = arguments[0];
+            return canvas.toDataURL('image/png').substring('data:image/png;base64,'.length);
+        """, qr_canvas)
+        return qr_base64
+    except NoSuchElementException:
+        return None
+
 def main():
     try:
         driver.get("https://web.whatsapp.com")
