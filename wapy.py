@@ -70,16 +70,23 @@ def take_screenshot(driver):
     return screenshot
 
 def wait_for_qr_container(driver, timeout=30):
-    """Wait for the QR container to be present"""
-    try:
-        WebDriverWait(driver, timeout).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div[data-ref^="2@"]'))
-        )
-        logger.info("🎯 QR container found")
-        return True
-    except TimeoutException:
-        logger.error("⏳ Timeout waiting for QR container")
-        return False
+    """
+    Wait for the QR container to be present in the DOM using a list of selectors.
+    
+    Returns True if any selector matches within the timeout, False otherwise.
+    """
+    for select in QR_SELECTORS:
+        try:
+            WebDriverWait(driver, timeout).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, select))
+            )
+            logger.info(f"🎯 QR container found using selector: {select}")
+            return True
+        except TimeoutException:
+            logger.warning(f"⚠️ Timeout waiting for QR container using selector: {select}")
+            continue
+    logger.error("⏳ Timeout waiting for any QR container selector")
+    return False
 
 def copy_qr(driver):
     try:
