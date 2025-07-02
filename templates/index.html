@@ -1,46 +1,84 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>WhatsApp QR Code</title>
+    <title>WhatsApp Web QR Code</title>
     <style>
         body {
             font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+        }
+        .container {
             text-align: center;
-            margin-top: 60px;
-        }
-        .qr-container {
-            display: inline-block;
-            border: 1px solid #ddd;
-            padding: 24px 32px;
+            padding: 20px;
+            background-color: white;
             border-radius: 10px;
-            background: #fafbfc;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.07);
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
         }
-        img {
-            margin-top: 16px;
-            margin-bottom: 8px;
+        .qr-code {
+            margin: 20px 0;
         }
-        .note {
-            color: #888;
-            font-size: 14px;
-            margin-top: 18px;
+        .error {
+            color: red;
+            margin: 20px 0;
+        }
+        .refresh-button {
+            background-color: #128C7E;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            margin: 10px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .refresh-button:hover {
+            background-color: #075E54;
+        }
+        .time {
+            color: #667781;
+            font-size: 0.9em;
+            margin-top: 20px;
+        }
+        .navigation {
+            margin-top: 20px;
         }
     </style>
+    <meta http-equiv="refresh" content="30">
 </head>
 <body>
-    <div class="qr-container">
-        <h1>Scan WhatsApp QR Code</h1>
+    <div class="container">
+        <h1>WhatsApp Web QR Code</h1>
+        <div class="time">
+            Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {{ current_time }}
+        </div>
         {% if qr_base64 %}
-            <img src="data:image/png;base64,{{ qr_base64 }}" 
-                 alt="WhatsApp QR Code" width="300" height="300"/>
-            <div class="note">Open WhatsApp on your phone and scan to link your device.</div>
+            <div class="qr-code">
+                <img src="data:image/png;base64,{{ qr_base64 }}" alt="QR Code">
+            </div>
+            <p>Scan this QR code with WhatsApp on your phone</p>
+        {% elif error %}
+            <div class="error">
+                <p>Error: {{ error }}</p>
+            </div>
         {% else %}
-            <div class="note">
-                No QR code found.<br>
-                It may have already been scanned or is not available at this time.
+            <div class="error">
+                <p>No QR code available</p>
             </div>
         {% endif %}
+        <div class="navigation">
+            <a href="{{ url_for('refresh_browser') }}" class="refresh-button">🔄 Refresh QR Code</a>
+            <a href="{{ url_for('get_messages') }}" class="refresh-button">📬 Check Messages</a>
+        </div>
+        <div class="time">
+            Current User's Login: Sman12345678
+        </div>
     </div>
 </body>
 </html>
