@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>WhatsApp Messages</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .message {
+            background: #dcf8c6;
+            padding: 10px 15px;
+            margin: 10px 0;
+            border-radius: 7.5px;
+            max-width: 95%;
+            position: relative;
+        }
+        .message-info {
+            color: #667781;
+            font-size: 0.85em;
+            margin-bottom: 5px;
+        }
+        .message-text {
+            color: #111b21;
+        }
+        .error {
+            color: red;
+            text-align: center;
+            padding: 20px;
+            background: #fff5f5;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+        .unread-count {
+            background: #25D366;
+            color: white;
+            padding: 5px 15px;
+            border-radius: 15px;
+            display: inline-block;
+            margin-bottom: 20px;
+        }
+        .navigation {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+        }
+        .btn {
+            background-color: #128C7E;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 5px;
+            text-decoration: none;
+            margin: 0 10px;
+            display: inline-block;
+        }
+        .btn:hover {
+            background-color: #075E54;
+        }
+        .time {
+            color: #667781;
+            font-size: 0.9em;
+            margin: 20px 0;
+            text-align: center;
+        }
+    </style>
+    <meta http-equiv="refresh" content="30">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>WhatsApp Messages</h1>
+            <div class="time">
+                Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {{ current_time }}
+            </div>
+        </div>
+
+        {% if error %}
+            <div class="error">
+                {{ error }}
+            </div>
+        {% else %}
+            {% if authenticated %}
+                {% if unread_count %}
+                    <div class="unread-count">
+                        {{ unread_count }} unread messages
+                    </div>
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="message">
+                                <div class="message-info">{{ message.info }}</div>
+                                <div class="message-text">{{ message.text }}</div>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                {% else %}
+                    <div class="error">No unread messages</div>
+                {% endif %}
+            {% endif %}
+        {% endif %}
+
+        <div class="navigation">
+            <a href="{{ url_for('index') }}" class="btn">🏠 Home</a>
+            <a href="{{ url_for('refresh_browser') }}" class="btn">🔄 Refresh</a>
+            <a href="{{ url_for('get_messages') }}" class="btn">📬 Check Messages</a>
+        </div>
+        
+        <div class="time">
+            Current User's Login: Sman12345678
+        </div>
+    </div>
+</body>
+</html>
