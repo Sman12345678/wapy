@@ -1,29 +1,42 @@
+import logging
+import os
 from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
-import os
 import time
-import logging
 
-logging.basicConfig(
-    level=logging.DEBUG,
-    format="%(asctime)s [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s",
-)
+class SquareBoxFormatter(logging.Formatter):
+    def format(self, record):
+        msg = super().format(record)
+        msg_lines = msg.split('\n')
+        max_len = max(len(line) for line in msg_lines)
+        box_width = max(22, max_len + 6)  # minimum width, adjust as needed
+        top_bot = '=' * box_width
+        empty = '=' + ' ' * (box_width - 2) + '='
+        # Center each line in the box
+        boxed_lines = [
+            '=' + line.center(box_width - 2) + '='
+            for line in msg_lines
+        ]
+        return '\n'.join([top_bot, empty, *boxed_lines, empty, top_bot])
+
+logging.basicConfig(level=logging.DEBUG)
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.DEBUG)
+console_handler.setFormatter(SquareBoxFormatter("%(asctime)s [%(levelname)s] %(message)s"))
 file_handler = logging.FileHandler("app.log")
-file_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
-logging.getLogger().addHandler(file_handler)
+file_handler.setFormatter(SquareBoxFormatter("%(asctime)s [%(levelname)s] %(message)s"))
+root_logger = logging.getLogger()
+root_logger.handlers = []
+root_logger.addHandler(console_handler)
+root_logger.addHandler(file_handler)
 
-# --- Selectors Used ---
-SELECTOR_QR_CANVAS = "canvas[aria-label='Scan this QR code to link a device!']"  # QR code canvas
-SELECTOR_MAIN_PAGE_DIV = (
-    "div.x1c4vz4f.xs83m0k.xdl72j9.x1g77sc7.xeuugli.x2lwn1j.xozqiw3."
-    "x1oa3qoh.x12fk4p8.x10l6tqk.xxcbqqu.x1oozmrk"
-)
+SELECTOR_QR_CANVAS = "canvas[aria-label='Scan this QR code to link a device!']"
+SELECTOR_QR_CONTAINER = "div.x579bpy.xo1l8bm.xggjnk3.x1hql6x6"
 SELECTOR_NEW_MESSAGE_DIV = "div._ahlk"
 
-# --- Chrome driver setup ---
 user_agent = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 "
     "(KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36"
@@ -48,42 +61,27 @@ driver = get_driver()
 def take_screenshot(driver):
     return driver.get_screenshot_as_png()
 
-def wait_for_qr_scan(driver, qr_timeout=300):
-    """
-    Wait for the user to scan the QR code.
-    If QR is not scanned in qr_timeout seconds, refresh to get a new QR.
-    """
-    logging.info("Waiting for QR scan (auto-refresh every 2 minutes)...")
-    while True:
-        timer = time.time()
-        while time.time() - timer < qr_timeout:
-            try:
-                driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CANVAS)
-            except NoSuchElementException:
-                logging.info("QR code scanned!")
-                return
-            time.sleep(1)
-        logging.info("QR code expired / not scanned, refreshing page for new QR.")
-        driver.refresh()
-        time.sleep(5)  # Wait for page to reload
+def is_qr_still_visible(driver):
+    try:
+        driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CONTAINER)
+        return True
+    except NoSuchElementException:
+        return False
 
-def wait_for_main_page(driver):
-    """
-    Poll until main page div appears, meaning QR page has been passed.
-    """
-    logging.info("Polling for main page div (user must scan QR)...")
-    while True:
-        try:
-            driver.find_element(By.CSS_SELECTOR, SELECTOR_MAIN_PAGE_DIV)
-            logging.info("Main page detected! QR scan complete.")
+def wait_for_qr_scan(driver, qr_timeout=300):
+    logging.info("Waiting for QR scan (auto-refresh every 5 minutes)...")
+    timer = time.time()
+    while time.time() - timer < qr_timeout:
+        if not is_qr_still_visible(driver):
+            logging.info("QR container div gone. Assuming QR scanned.")
             return
-        except NoSuchElementException:
-            time.sleep(1)
+        time.sleep(1)
+    logging.info("QR code expired / not scanned, refreshing page for new QR.")
+    driver.refresh()
+    time.sleep(5)
+    wait_for_qr_scan(driver, qr_timeout)
 
 def get_msg(driver):
-    """
-    Poll every second for new message div and click it to view.
-    """
     while True:
         try:
             msg_div = driver.find_element(By.CSS_SELECTOR, SELECTOR_NEW_MESSAGE_DIV)
@@ -93,12 +91,7 @@ def get_msg(driver):
         except NoSuchElementException:
             time.sleep(1)
 
-SELECTOR_QR_CANVAS = "canvas[aria-label='Scan this QR code to link a device!']"
-
 def copy_qr(driver):
-    """
-    Locates the QR code canvas and returns its PNG base64 string.
-    """
     try:
         qr_canvas = driver.find_element(By.CSS_SELECTOR, SELECTOR_QR_CANVAS)
         qr_base64 = driver.execute_script("""
@@ -114,21 +107,12 @@ def main():
         driver.get("https://web.whatsapp.com")
         logging.info("Navigated to WhatsApp Web.")
         time.sleep(10)
-
-        # 1. Wait for QR scan, refresh every 2 minutes if expired
         wait_for_qr_scan(driver)
         take_screenshot(driver)
-
-        # 2. Wait until user is on the main page (QR scan complete)
-        wait_for_main_page(driver)
-        take_screenshot(driver)
-
-        # 3. Poll for new messages and click to view
         logging.info("Polling for new messages...")
         while True:
             get_msg(driver)
             time.sleep(1)
-
     except Exception as e:
         logging.error(f"Error in WhatsApp automation: {e}", exc_info=True)
     finally:
