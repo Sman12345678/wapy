@@ -38,6 +38,8 @@ def get_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
     options.add_argument('--user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/138.0.0.0 Safari/537.36')
+    user_data_dir = os.path.abspath("chrome_data")
+    options.add_argument(f'--user-data-dir={user_data_dir}')
     service = Service(os.environ.get("CHROMEDRIVER_BIN", "/usr/bin/chromedriver"))
     return webdriver.Chrome(service=service, options=options)
 
