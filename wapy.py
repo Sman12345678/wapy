@@ -192,6 +192,7 @@ def send_msg(driver, msg):
     return True
 
 def main():
+    driver = None
     try:
         driver = get_driver()
         logger.info("🚀 WebDriver initialized")
@@ -199,14 +200,29 @@ def main():
         logger.info("🌐 Navigated to WhatsApp Web")
         logger.info("⏱️ Waiting 10 seconds for page load...")
         time.sleep(10)
-        return driver
-    except Exception as e:
-        logger.error(f"💥 Error: {e}")
-        if 'driver' in locals():
-            driver.quit()
-        return None
 
-if __name__ == "__main__":
-    logger.info(f"Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info("Current User's Login: Sman12345678")
-    main()
+        # Wait for authentication
+        max_wait = 60  # seconds
+        waited = 0
+        while not is_authenticated(driver) and waited < max_wait:
+            logger.info("🕰️ Waiting for authentication (scan QR in browser)...")
+            time.sleep(5)
+            waited += 5
+
+        if not is_authenticated(driver):
+            logger.error("❌ Authentication timed out. Exiting main().")
+            return
+
+        logger.info("✅ Authenticated. Looking for unread messages...")
+        unread_msgs = get_unread_msgs(driver)
+        for idx, msg in enumerate(unread_msgs):
+            logger.info(f"Unread[{idx+1}]: {msg['info']} {msg['text']}")
+
+        # You can add more logic here (e.g. send_msg(driver, "Your message"))
+
+    except Exception as e:
+        logger.error(f"💥 Error in main(): {e}")
+    finally:
+        if driver is not None:
+            driver.quit()
+            logger.info("🛑 WebDriver closed.")
