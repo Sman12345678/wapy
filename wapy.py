@@ -126,7 +126,7 @@ def find_unread_chats(driver):
         return []
 
 def last_msg(driver):
-    """Return last message (not from Nova) in current chat, else None."""
+    """Return last message (not from Nova, must have text) in current chat, else None."""
     try:
         msgs = driver.find_elements(By.CSS_SELECTOR, 'div.copyable-text[data-pre-plain-text]')
         if not msgs:
@@ -141,7 +141,16 @@ def last_msg(driver):
         if sender.lower() == 'nova':
             logger.info("🙅 Last message is from Nova, skipping.")
             return None
-        text = m.find_element(By.CSS_SELECTOR, 'span.selectable-text.copyable-text span').text
+        # Try to extract the message text, else mark as unsupported
+        try:
+            text_elem = m.find_element(By.CSS_SELECTOR, 'span.selectable-text.copyable-text span')
+            text = text_elem.text
+            if not text.strip():
+                logger.info("🛑 Unsupported message (empty text), skipping.")
+                return None
+        except Exception:
+            logger.info("🛑 Unsupported message type (no text), skipping.")
+            return None
         logger.info(f"✅ Last message from '{sender}': {text}")
         return {'info': info, 'text': text}
     except Exception as e:
