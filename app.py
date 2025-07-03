@@ -1,6 +1,6 @@
 from flask import Flask, jsonify, send_file, render_template, redirect, url_for
 from wapy import get_driver, take_screenshot, main, get_qr, is_authenticated
-from wapy import  find_unread_chats, last_msg, get_unread_msgs
+from wapy import find_unread_chats, last_msg, get_unread_msgs
 from io import BytesIO
 import threading
 import logging
@@ -31,27 +31,21 @@ logger.handlers = [handler]
 
 app = Flask(__name__)
 driver = None
-
-def initialize_driver():
-    global driver
-    driver = main()
-    if driver:
-        logger.info("✨ Driver initialized successfully")
-    else:
-        logger.error("❌ Failed to initialize driver")
+bot = None
 
 # Initialize with exact time format
 logger.info(f"Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}")
 logger.info("Current User's Login: Sman12345678")
-initialize_driver()
 
-result = start_bot()  # Start the AI bot
+# Initialize driver and bot once
+result = start_bot()  
 if result:
     bot, driver = result
     logger.info("✨ Bot and driver initialized successfully")
 else:
     logger.error("❌ Failed to initialize system")
     exit(1)
+
 
 @app.route("/refresh")
 def refresh_browser():
