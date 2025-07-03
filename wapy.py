@@ -119,7 +119,7 @@ def get_unread_messages(driver):
             logger.warning("⚠️ Please scan QR code first")
             return None
         # Wait for page and continue button after authentication
-        post_auth_continue(driver, wait_seconds=4)
+        post_auth_continue(driver, wait_seconds=6)
         unread_badge = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, 'div._ahlk span[aria-label*="unread messages"]'))
         )
