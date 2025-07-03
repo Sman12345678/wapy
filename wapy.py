@@ -1,3 +1,4 @@
+
 import logging
 import os
 import time
@@ -192,7 +193,6 @@ def send_msg(driver, msg):
     return True
 
 def main():
-    driver = None
     try:
         driver = get_driver()
         logger.info("🚀 WebDriver initialized")
@@ -200,20 +200,14 @@ def main():
         logger.info("🌐 Navigated to WhatsApp Web")
         logger.info("⏱️ Waiting 10 seconds for page load...")
         time.sleep(10)
-
-        # Wait indefinitely for authentication
-        while not is_authenticated(driver):
-            logger.info("🕰️ Waiting for authentication (scan QR in browser)...")
-            time.sleep(5)
-
-        logger.info("✅ Authenticated. (Nothing else will happen.)")
-        while True:
-            # Do nothing, but keep the driver/browser alive
-            time.sleep(60)
-
+        return driver
     except Exception as e:
-        logger.error(f"💥 Error in main(): {e}")
-    finally:
-        if driver is not None:
+        logger.error(f"💥 Error: {e}")
+        if 'driver' in locals():
             driver.quit()
-            logger.info("🛑 WebDriver closed.")
+        return None
+
+if __name__ == "__main__":
+    logger.info(f"Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}")
+    logger.info("Current User's Login: Suleiman")
+    main()
