@@ -201,24 +201,15 @@ def main():
         logger.info("⏱️ Waiting 10 seconds for page load...")
         time.sleep(10)
 
-        # Wait for authentication
-        max_wait = 60  # seconds
-        waited = 0
-        while not is_authenticated(driver) and waited < max_wait:
+        # Wait indefinitely for authentication
+        while not is_authenticated(driver):
             logger.info("🕰️ Waiting for authentication (scan QR in browser)...")
             time.sleep(5)
-            waited += 5
 
-        if not is_authenticated(driver):
-            logger.error("❌ Authentication timed out. Exiting main().")
-            return
-
-        logger.info("✅ Authenticated. Looking for unread messages...")
-        unread_msgs = get_unread_msgs(driver)
-        for idx, msg in enumerate(unread_msgs):
-            logger.info(f"Unread[{idx+1}]: {msg['info']} {msg['text']}")
-
-        # You can add more logic here (e.g. send_msg(driver, "Your message"))
+        logger.info("✅ Authenticated. (Nothing else will happen.)")
+        while True:
+            # Do nothing, but keep the driver/browser alive
+            time.sleep(60)
 
     except Exception as e:
         logger.error(f"💥 Error in main(): {e}")
