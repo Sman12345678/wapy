@@ -81,17 +81,18 @@
             text-align: center;
         }
     </style>
-    <meta http-equiv="refresh" content="30">
+    <!-- Remove meta refresh for AJAX polling -->
 </head>
 <body>
     <div class="container">
         <div class="header">
             <h1>WhatsApp Messages</h1>
             <div class="time">
-                Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {{ current_time }}
+                Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): <span id="current_time">{{ current_time }}</span>
             </div>
         </div>
 
+        <div id="messages-section">
         {% if error %}
             <div class="error">
                 {{ error }}
@@ -99,22 +100,23 @@
         {% else %}
             {% if authenticated %}
                 {% if unread_count %}
-                    <div class="unread-count">
+                    <div class="unread-count" id="unread-count">
                         {{ unread_count }} unread messages
                     </div>
-                    {% if messages %}
+                    <div class="messages-list">
                         {% for message in messages %}
                             <div class="message">
                                 <div class="message-info">{{ message.info }}</div>
                                 <div class="message-text">{{ message.text }}</div>
                             </div>
                         {% endfor %}
-                    {% endif %}
+                    </div>
                 {% else %}
                     <div class="error">No unread messages</div>
                 {% endif %}
             {% endif %}
         {% endif %}
+        </div>
 
         <div class="navigation">
             <a href="{{ url_for('index') }}" class="btn">🏠 Home</a>
@@ -126,5 +128,26 @@
             Current User's Login: Sman12345678
         </div>
     </div>
+    <script>
+        function fetchMessages() {
+            fetch('{{ url_for("get_messages") }}')
+                .then(response => response.text())
+                .then(html => {
+                    // Parse the returned HTML and replace just the messages section
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const newSection = doc.getElementById('messages-section');
+                    if (newSection) {
+                        document.getElementById('messages-section').innerHTML = newSection.innerHTML;
+                    }
+                    // Optionally update the time as well
+                    const newTime = doc.getElementById('current_time');
+                    if(newTime) {
+                        document.getElementById('current_time').textContent = newTime.textContent;
+                    }
+                });
+        }
+        setInterval(fetchMessages, 10000); // 10 seconds
+    </script>
 </body>
 </html>
