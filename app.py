@@ -6,6 +6,8 @@ import threading
 import logging
 from datetime import datetime
 import time
+from ai import start_bot
+import atexit
 
 # Set up logging
 class EmojiFormatter(logging.Formatter):
@@ -42,6 +44,14 @@ def initialize_driver():
 logger.info(f"Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}")
 logger.info("Current User's Login: Sman12345678")
 initialize_driver()
+
+result = start_bot()  # Start the AI bot
+if result:
+    bot, driver = result
+    logger.info("✨ Bot and driver initialized successfully")
+else:
+    logger.error("❌ Failed to initialize system")
+    exit(1)
 
 @app.route("/refresh")
 def refresh_browser():
@@ -141,6 +151,14 @@ def serve_screenshot_api():
 def not_found_error(error):
     return render_template('404.html', 
                          current_time=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')), 404
+
+@atexit.register
+def cleanup():
+    if bot:
+        bot.stop()
+        bot.join()
+    if driver:
+        driver.quit()
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
