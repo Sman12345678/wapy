@@ -65,7 +65,7 @@ def post_auth_continue(driver, wait_seconds=4):
     try:
         # Try clicking the Continue button if it exists
         continue_btn = WebDriverWait(driver, 5).until(
-            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.x889kno.x1a8lsjc.x13jy36j.x64bnmy.x1n2onr6.x1rg5ohu.xk50ysn.x1f6kntn.xyesn5m.x1rl75mt.x19t5iym.xz7t8uv.x13xmedi.x178xt8z.x1lun4ml.x1y1aw1k.xwib8y2.x1glnyev.x1ix68h3.x19i3t5v.x1tk7jg1.x1vjfegm.x1l6b2ym'))
+            EC.element_to_be_clickable((By.CSS_SELECTOR, 'button.x889kno.x1a8lsjc.x13jy36j.x64bnmy.x1n2onr6.x1rg5ohu.xk50ysn.x1f6kntn.xyesn5m.x1rl75mt.x19t5iym.xz7t8uv.x13xmedi.x178xt8z.x1lun4ml.xso031l.xpilrb4.x13fuv20.x18b5jzi.x1q0q8m5.x1t7ytsu.x1v8p93f.x1o3jo1z.x16stqrj.xv5lvn5.x1hl8ikr.xfagghw.x9dyr19.x9lcvmn.x1pse0pq.xcjl5na.xfn3atn.x1k3x3db.x9qntcr.xuxw1ft.xv52azi'))
         )
         continue_btn.click()
         logger.info("✅ Clicked the Continue button after QR scan.")
@@ -136,54 +136,24 @@ def get_unread_messages(driver):
         return None
 
 def get_msg(driver):
-    """
-    For each chat, click and get the latest message.
-    If the sender is 'Nova', skip.
-    If message content/structure is missing, skip.
-    Returns a list of messages (dicts) from all chats except those from Nova.
-    """
-    messages_info = []
     try:
-        # Wait for chat list to load
-        chat_list = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div._21S-L'))
+        messages = WebDriverWait(driver, 10).until(
+            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.copyable-text[data-pre-plain-text]'))
         )
-        for chat in chat_list:
+        message_list = []
+        for msg in messages:
             try:
-                chat.click()
-                # Wait for messages in the chat
-                chat_messages = WebDriverWait(driver, 10).until(
-                    EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.copyable-text[data-pre-plain-text]'))
-                )
-                # Get the last message
-                last_msg = chat_messages[-1]
-                msg_info = last_msg.get_attribute('data-pre-plain-text')
-                try:
-                    msg_text = last_msg.find_element(By.CSS_SELECTOR, 'span.selectable-text.copyable-text span').text
-                except Exception:
-                    continue  # Skip if expected structure not found
-
-                # Extract sender from data-pre-plain-text (format: [HH:MM, DD/MM/YYYY] Sender Name: )
-                sender = None
-                if msg_info:
-                    # Example: "[14:09, 03/07/2025] Nova: Hello"
-                    p1 = msg_info.find('] ')
-                    p2 = msg_info.find(':', p1)
-                    if p1 != -1 and p2 != -1:
-                        sender = msg_info[p1+2:p2]
-
-                if sender and sender.strip() == 'Nova':
-                    continue  # Ignore messages from Nova
-
-                messages_info.append({
-                    'sender': sender,
+                msg_info = msg.get_attribute('data-pre-plain-text')
+                msg_text = msg.find_element(By.CSS_SELECTOR, 'span.selectable-text.copyable-text span').text
+                message_list.append({
+                    'info': msg_info,
                     'text': msg_text
                 })
             except Exception as e:
-                logger.error(f"Error parsing chat: {e}")
+                logger.error(f"Error parsing message: {e}")
                 continue
-        logger.info(f"📨 Found {len(messages_info)} messages from all chats (excluding 'Nova')")
-        return messages_info
+        logger.info(f"📨 Found {len(message_list)} messages")
+        return message_list
     except Exception as e:
         logger.error(f"💥 Error getting messages: {e}")
         return None
@@ -205,5 +175,5 @@ def main():
 
 if __name__ == "__main__":
     logger.info(f"Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info("Current User's Login: Suleiman")
+    logger.info("Current User's Login: Sman12345678")
     main()
