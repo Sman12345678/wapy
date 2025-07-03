@@ -59,7 +59,7 @@ def is_authenticated(driver):
         logger.error(f"💥 Error checking authentication: {e}")
         return False
 
-def post_auth_continue(driver, wait_seconds=4):
+def post_auth_continue(driver, wait_seconds=5):
     logger.info(f"⏳ Waiting {wait_seconds} seconds post-authentication for page load.")
     time.sleep(wait_seconds)
     try:
@@ -160,6 +160,10 @@ def last_msg(driver):
 def get_unread_msgs(driver):
     """Collect last unread message (not from Nova) from each unread chat."""
     res = []
+    # Check post-auth status before proceeding
+    if not post_auth_continue(driver, wait_seconds=5):
+        logger.error("❌ Cannot proceed: WhatsApp Web not ready after authentication.")
+        return res
     unread = find_unread_chats(driver)
     for badge in unread:
         try:
