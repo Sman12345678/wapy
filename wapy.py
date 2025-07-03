@@ -115,48 +115,57 @@ def get_qr(driver):
         logger.error(f"💥 Error capturing QR code: {e}")
         return None
 
-def get_unread_messages(driver):
+def find_unread_chats(driver):
+    """Return list of unread badge elements (one per unread chat)."""
     try:
-        if not is_authenticated(driver):
-            logger.warning("⚠️ Please scan QR code first")
-            return None
-        # Wait for page and continue button after authentication
-        post_auth_continue(driver, wait_seconds=6)
-        unread_badge = WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.CSS_SELECTOR, 'div._ahlk span[aria-label*="unread messages"]'))
-        )
-        unread_count = int(''.join(filter(str.isdigit, unread_badge.get_attribute('aria-label'))))
-        logger.info(f"📬 Found {unread_count} unread messages")
-        unread_badge.click()
-        logger.info("👆 Clicked unread messages indicator")
-        time.sleep(2)
-        return unread_count
+        chats = driver.find_elements(By.CSS_SELECTOR, 'div._ahlk span[aria-label*="unread messages"]')
+        logger.info(f"🔎 Found {len(chats)} chats with unread messages")
+        return chats
     except Exception as e:
-        logger.error(f"💥 Error getting unread messages: {e}")
+        logger.error(f"❌ Error finding unread chats: {e}")
+        return []
+
+def last_msg(driver):
+    """Return last message (not from Nova) in current chat, else None."""
+    try:
+        msgs = driver.find_elements(By.CSS_SELECTOR, 'div.copyable-text[data-pre-plain-text]')
+        if not msgs:
+            logger.info("💬 No messages found in chat.")
+            return None
+        m = msgs[-1]
+        info = m.get_attribute('data-pre-plain-text')
+        if not info or ':' not in info:
+            logger.info("⚠️ Message info missing or malformed.")
+            return None
+        sender = info.rsplit('] ', 1)[-1].split(':', 1)[0].strip()
+        if sender.lower() == 'nova':
+            logger.info("🙅 Last message is from Nova, skipping.")
+            return None
+        text = m.find_element(By.CSS_SELECTOR, 'span.selectable-text.copyable-text span').text
+        logger.info(f"✅ Last message from '{sender}': {text}")
+        return {'info': info, 'text': text}
+    except Exception as e:
+        logger.error(f"❌ Error getting last message: {e}")
         return None
 
-def get_msg(driver):
-    try:
-        messages = WebDriverWait(driver, 10).until(
-            EC.presence_of_all_elements_located((By.CSS_SELECTOR, 'div.copyable-text[data-pre-plain-text]'))
-        )
-        message_list = []
-        for msg in messages:
-            try:
-                msg_info = msg.get_attribute('data-pre-plain-text')
-                msg_text = msg.find_element(By.CSS_SELECTOR, 'span.selectable-text.copyable-text span').text
-                message_list.append({
-                    'info': msg_info,
-                    'text': msg_text
-                })
-            except Exception as e:
-                logger.error(f"Error parsing message: {e}")
-                continue
-        logger.info(f"📨 Found {len(message_list)} messages")
-        return message_list
-    except Exception as e:
-        logger.error(f"💥 Error getting messages: {e}")
-        return None
+def get_unread_msgs(driver):
+    """Collect last unread message (not from Nova) from each unread chat."""
+    res = []
+    unread = find_unread_chats(driver)
+    for badge in unread:
+        try:
+            driver.execute_script("arguments[0].scrollIntoView(true);", badge)
+            badge.click()
+            logger.info("👆 Opened unread chat")
+            time.sleep(2)
+            m = last_msg(driver)
+            if m:
+                res.append(m)
+        except Exception as e:
+            logger.error(f"❌ Error in unread chat loop: {e}")
+            continue
+    logger.info(f"📦 Collected {len(res)} unread messages.")
+    return res
 
 def main():
     try:
