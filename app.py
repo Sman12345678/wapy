@@ -7,7 +7,6 @@ import logging
 from datetime import datetime
 import time
 
-
 # Set up logging
 class EmojiFormatter(logging.Formatter):
     EMOJI_MAP = {
@@ -96,45 +95,6 @@ def get_messages():
                             error=str(e),
                             current_time=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
 
-def chatbot():
-    greetings = ["hi", "hello", "hey", "good morning", "good afternoon", "good evening"]
-    replied_msgs = set()
-    while True:
-        try:
-            if not driver or not is_authenticated(driver):
-                time.sleep(10)
-                continue
-
-            unread = get_unread_msgs(driver)
-            for msg in unread:
-                msg_text = msg.get("text", "").strip().lower()
-                msg_info = msg.get("info", "")
-                # Unique message id (info+text) to avoid double replies
-                msg_id = f"{msg_info}|{msg_text}"
-                if msg_id in replied_msgs:
-                    continue
-
-                # Find username from info (format: [time] username: ...)
-                try:
-                    sender = msg_info.rsplit('] ', 1)[-1].split(':', 1)[0].strip()
-                except Exception:
-                    sender = "there"
-
-                # Check if message is a greeting
-                if any(greet in msg_text for greet in greetings):
-                    reply = f"*Hello, {sender}!*"
-                else:
-                    reply = f"*Hi {sender}, I received your message!*"
-
-                send_msg(driver, reply)
-                replied_msgs.add(msg_id)
-                logging.info(f"🤖 Auto-replied to {sender}: {reply}")
-
-            time.sleep(10)  # Check for new messages every 10 seconds
-        except Exception as e:
-            logging.error(f"💥 Chatbot error: {e}")
-            time.sleep(10)
-
 
 @app.route("/")
 def index():
@@ -184,5 +144,3 @@ def not_found_error(error):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
-    thread = threading.Thread(target=chatbot)
-    thread.start()
