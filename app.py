@@ -7,6 +7,7 @@ import logging
 from datetime import datetime
 import time
 
+
 # Set up logging
 class EmojiFormatter(logging.Formatter):
     EMOJI_MAP = {
@@ -144,3 +145,5 @@ def not_found_error(error):
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=10000)
+    thread = threading.Thread(target=main)
+    thread.start()
