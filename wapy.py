@@ -9,6 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from datetime import datetime
+from selenium.webdriver.common.keys import Keys
 
 # Emoji-enhanced logging setup
 class EmojiFormatter(logging.Formatter):
@@ -179,6 +180,16 @@ def get_unread_msgs(driver):
             continue
     logger.info(f"📦 Collected {len(res)} unread messages.")
     return res
+
+def send_msg(driver, msg):
+    msg_box = driver.find_element(By.CSS_SELECTOR, 'div[aria-label="Type a message"][contenteditable="true"]')
+    msg_box.click()
+    msg_box.clear()
+    msg_box.send_keys(msg)
+    time.sleep(0.1)
+    send_btn = driver.find_element(By.CSS_SELECTOR, 'button[aria-label="Send"]')
+    send_btn.click()
+    return True
 
 def main():
     try:
