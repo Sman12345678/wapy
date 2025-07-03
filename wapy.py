@@ -1,4 +1,3 @@
-
 import logging
 import os
 import time
@@ -209,5 +208,5 @@ def main():
 
 if __name__ == "__main__":
     logger.info(f"Current Date and Time (UTC - YYYY-MM-DD HH:MM:SS formatted): {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}")
-    logger.info("Current User's Login: Suleiman")
+    logger.info("Current User's Login: Sman12345678")
     main()
