@@ -1,5 +1,6 @@
 from flask import Flask, jsonify, send_file, render_template, redirect, url_for
-from wapy import get_driver, take_screenshot, main, get_qr, get_unread_messages, get_msg, is_authenticated
+from wapy import get_driver, take_screenshot, main, get_qr, is_authenticated
+from wapy import  find_unread_chats, last_msg, get_unread_msgs
 from io import BytesIO
 import threading
 import logging
@@ -72,10 +73,11 @@ def get_messages():
                                 error="Please scan QR code first",
                                 authenticated=False,
                                 current_time=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
-            
-        unread_count = get_unread_messages(driver)
-        if unread_count is not None:
-            messages = get_msg(driver)
+        
+        # Use new logic for unread messages
+        messages = get_unread_msgs(driver)
+        if messages:
+            unread_count = len(messages)
             return render_template('messages.html',
                                 authenticated=True,
                                 unread_count=unread_count,
@@ -92,6 +94,7 @@ def get_messages():
         return render_template('messages.html', 
                             error=str(e),
                             current_time=datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S'))
+
 
 @app.route("/")
 def index():
