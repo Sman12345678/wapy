@@ -191,15 +191,41 @@ def send_msg(driver, msg):
     send_btn.click()
     return True
 
+def start_unread_watcher(driver, interval=60):
+    while True:
+        try:
+            if driver and is_authenticated(driver):
+                logger.info("🔄 [BOT] Checking for unread messages...")
+                messages = get_unread_msgs(driver)
+                if messages:
+                    logger.info(f"📥 [BOT] Found {len(messages)} unread messages:")
+                    for msg in messages:
+                        logger.info(f"💬 [BOT] Message: {msg['text']}")
+                else:
+                    logger.info("📭 [BOT] No new unread messages.")
+            else:
+                logger.warning("🚫 [BOT] Not authenticated. Skipping check.")
+        except Exception as e:
+            logger.error(f"💥 [BOT] Error during message check: {e}")
+        time.sleep(interval)
+
+
 def main():
     try:
         driver = get_driver()
         logger.info("🚀 WebDriver initialized")
         driver.get("https://web.whatsapp.com")
         logger.info("🌐 Navigated to WhatsApp Web")
-        logger.info("⏱️ Waiting 10 seconds for page load...")
+        logger.info("⏱️ Waiting 10 seconds for QR or page load...")
         time.sleep(10)
+
+        # ✅ Start background thread to watch for unread messages
+        watcher_thread = threading.Thread(target=start_unread_watcher, args=(driver,), daemon=True)
+        watcher_thread.start()
+        logger.info("👁️ Started background message watcher thread")
+
         return driver
+
     except Exception as e:
         logger.error(f"💥 Error: {e}")
         if 'driver' in locals():
