@@ -33,13 +33,15 @@ driver = None
 
 def initialize_driver():
     global driver
-    driver = main()  # Starts driver + watcher
+    driver = main()
     if driver:
         logger.info("✨ Driver initialized successfully")
-        # 🧠 Start AI bot
+
+        # 🧠 START AI BOT after driver exists
         ai_thread = threading.Thread(target=start_ai, args=(driver,), daemon=True)
         ai_thread.start()
         logger.info("🤖 AI auto-reply bot thread started")
+
     else:
         logger.error("❌ Failed to initialize driver")
 
